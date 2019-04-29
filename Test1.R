@@ -3,18 +3,21 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 
+elements<-read.csv(file.path("/Users/gaojie/R/Assignment","NFA 2018.csv"))
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
       textInput("title","Title","Country VS Carbon dioxide commision"),
       selectInput("countries1","Country",choices = levels(elements$country),selected = "China"),
       selectInput("countries2", "Country",choices = levels((elements$country))),
-      checkboxInput("fit", "Add line of best fit", FALSE),
-      radioButtons("colour", "Point colour",
-                   choices = c("blue", "red", "green", "black")),
-      radioButtons("colour1", "Point colour",
-                   choices = c("blue", "red", "green", "black")),
-      numericInput("size", "Point size", 1, 1),
+      #checkboxInput("fit", "Add line of best fit", FALSE),
+      fluidRow(
+        column(5,radioButtons("colour", "Point colour",
+                              choices = c("blue", "red", "green", "yellow"),selected = 'yellow')),
+        column(5,radioButtons("colour1", "Point colour",
+                              choices = c("blue", "red", "green", "pink"),selected = 'green'))
+      ),
+     # numericInput("size", "Point size", 1, 1),
       sliderInput("years","Years",min(elements$year),max(elements$year),value = c(1970,2001))
     ),
     mainPanel(
@@ -27,7 +30,7 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   output$plot <-renderPlotly({
-    elements<-read.csv(file.path("/Users/gaojie/R/Assignment","NFA 2018.csv"))
+    
     element1=select(elements,country,year,population,total,carbon,Percapita.GDP..2010.USD.)
     element2<-(element1 %>%
                  group_by(country,year,population)%>%
@@ -37,14 +40,9 @@ server <- function(input, output, session) {
     data1<-as.data.frame(data1)
     data2<-as.data.frame(data2)
     p<-ggplot()+
-      geom_line(data=data1,aes(x=year,y=carbon_mean),size = input$size,col = input$colour) +
-      geom_line(data=data2,aes(x=year,y=carbon_mean),size = input$size,col = input$colour1) +
+      geom_line(data=data1,aes(x=year,y=carbon_mean),size = 1,col = input$colour) +
+      geom_line(data=data2,aes(x=year,y=carbon_mean),size = 1,col = input$colour1) +
       ggtitle(input$title)
-    
-    if (input$fit) {
-      p <- p + geom_smooth(method = "loess")
-    }
-    
     p
   })
   
