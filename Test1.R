@@ -57,12 +57,20 @@ ui <- fluidPage(
       sliderInput("years","Years",min(elements$year),max(elements$year),value = c(1970,2001))
     ),
     mainPanel(
-      plotlyOutput("plot"),
-      plotlyOutput("test"),
-      plotlyOutput("plot2")
+      tabsetPanel(
+        type = "tabs",
+        tabPanel("Plot",plotlyOutput("plot")),
+        tabPanel("Plot2",plotlyOutput("test")),
+        tabPanel('Plot3',plotlyOutput("plot2")),
+        tabPanel('World CO2 commsion map',plotlyOutput("map"))
+                 )
+      )
+      # plotlyOutput("plot"),
+      # plotlyOutput("test"),
+      # plotlyOutput("plot2")
     )
   )
-)
+
 
 server <- function(input, output, session) {
   
@@ -122,5 +130,37 @@ server <- function(input, output, session) {
     (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
       ggplotly()
   })
+  output$plot2<-renderPlotly({
+    
+    # box1<-subset(element3[element3$year>=input$years[1]|element3$year<=input$years[2],])
+    box1=Data1()
+    
+    (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
+      ggplotly()
+  })
+  output$map<-renderPlotly({
+    
+    # specify some map projection/options
+    g <- list(
+      scope = 'world',
+      projection = list(type = 'natural earth'),
+      showlakes = TRUE,
+      lakecolor = toRGB('white')
+    )
+    
+    # create our plot
+    plot_geo(element2, locationmode = 'country names') %>%
+      add_trace(
+        z = ~carbon, 
+        locations = ~country,
+        color = ~carbon,
+        colors = "Blues"   
+      ) %>%
+      layout(
+        title = 'Mean Carbon Emissions on the world',
+        geo = g
+      )
+  }
+  )
 }
 shinyApp(ui, server)
