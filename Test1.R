@@ -2,23 +2,16 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 library(plotly)
-library(tidyverse)
-library(lubridate)
-library(janitor)
-library(gridExtra)
 elements<-read.csv(file.path("/Users/gaojie/R/Assignment","NFA 2018.csv"))
-element1=select(elements,country,UN_region,year,population,total,carbon,Percapita.GDP..2010.USD.)
+element_origin=select(elements,country,UN_region,year,population,total,carbon,Percapita.GDP..2010.USD.)
 
-#print(element1)
 ## Data preparation
-## Data preparation
-element2<-(element1 %>%
-             group_by(country,year,population)%>%
+element_country<-(element_origin %>%
+             group_by(country,year,UN_region)%>%
              summarise(total_mean=(mean(total)),carbon=mean(carbon)))
 
-element3 = aggregate(cbind(carbon,population) ~ UN_region+year, element1, FUN=sum)
+element_unregion = aggregate(cbind(carbon) ~ UN_region+year, element_origin, FUN=sum)
 
-#print(element3)
 ui <- fluidPage(
   sidebarLayout(
     sidebarPanel(
@@ -32,10 +25,10 @@ ui <- fluidPage(
         condition = "input.region=='Country and CO2 commision'",
         selectInput("countries1","Country1",choices = levels(elements$country),selected = "China"),
         selectInput("countries2", "Country2",choices = levels((elements$country)),selected = "Africa"),
-        #checkboxInput("fit", "Add line of best fit", FALSE),
+        
         fluidRow(
           column(5,radioButtons("colour", "Country1",
-                                choices = c("blue", "red", "green", "yellow"),selected = 'blue')),
+                                choices = c("blue", "red", "green", "yellow"))),
           column(5,radioButtons("colour1", "Country2",
                                 choices = c("blue", "red", "green", "pink"),selected = 'red'))
         )
@@ -44,12 +37,12 @@ ui <- fluidPage(
         condition = "input.region=='Continent and CO2 commision'",
         selectInput("continent1","Continent1",choices = levels(elements$UN_region),selected = "Asia"),
         selectInput("continent2", "Continent2",choices = levels((elements$UN_region))),
-        #checkboxInput("fit", "Add line of best fit", FALSE),
+
         fluidRow(
-          column(5,radioButtons("colour", "Continent1",
-                                choices = c("blue", "red", "green", "yellow"),selected = 'yellow')),
-          column(5,radioButtons("colour1", "Continent2",
-                                choices = c("blue", "red", "green", "pink"),selected = 'green'))
+          column(5,radioButtons("colour1_1", "Continent1",
+                                choices = c("blue", "red", "green", "yellow"),selected = 'blue')),
+          column(5,radioButtons("colour1_2", "Continent2",
+                                choices = c("blue", "red", "green", "pink"),selected = 'red'))
         )
       ),
       
@@ -59,15 +52,12 @@ ui <- fluidPage(
     mainPanel(
       tabsetPanel(
         type = "tabs",
-        tabPanel("Plot",plotlyOutput("plot")),
-        tabPanel("Plot2",plotlyOutput("test")),
-        tabPanel('Plot3',plotlyOutput("plot2")),
+        tabPanel("Plot",plotlyOutput("plot_comparision")),
+        tabPanel("Plot2",plotlyOutput("plot_box")),
+        tabPanel('Plot3',plotlyOutput("plot_stream")),
         tabPanel('World CO2 commsion map',plotlyOutput("map"))
                  )
       )
-      # plotlyOutput("plot"),
-      # plotlyOutput("test"),
-      # plotlyOutput("plot2")
     )
   )
 
@@ -75,71 +65,62 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   
   Data <- reactive({
-    box1<-subset(element3,year>=input$years[1] & year<=input$years[2])
-    
-    if (input$region=="Country and CO2 commision"){
-      data1<-subset(element2,country %in% input$countries1 & year>=input$years[1] & year<=input$years[2])
-      data2<-subset(element2,country %in% input$countries2 & year>=input$years[1] & year<=input$years[2])
-    }
-    else if (input$region=="Continent and CO2 commision"){
-      data1<-subset(element3,UN_region %in% input$continent1 & year>=input$years[1] & year<=input$years[2])
-      # 
-      # print(data1)
-      # print(data2)
-    }
+    box1<-subset(element_unregion,year>=input$years[1] & year<=input$years[2])
   })
   
-  
-  output$plot<-renderPlotly({
+  output$plot_comparision<-renderPlotly({
     if (input$region=="Country and CO2 commision"){
-      data1<-subset(element2,country %in% input$countries1 & year>=input$years[1] & year<=input$years[2])
-      data2<-subset(element2,country %in% input$countries2 & year>=input$years[1] & year<=input$years[2])
+      data1<-subset(element_country,country %in% input$countries1 & year>=input$years[1] & year<=input$years[2])
+      data2<-subset(element_country,country %in% input$countries2 & year>=input$years[1] & year<=input$years[2])
+      data1<-as.data.frame(data1)
+      data2<-as.data.frame(data2)
+      ggplot(data1,aes(x=year,y=carbon/1000000))+
+        geom_line(data=data1,aes(x=year,y=carbon/1000000),size = 1,col = input$colour) +
+        geom_line(data=data2,aes(x=year,y=carbon/1000000),size = 1,col = input$colour1) +
+        ylab('Total Carbon Emission / M') +
+        ggtitle(input$title)
     }
     else if (input$region=="Continent and CO2 commision"){
-      data1<-subset(element3,UN_region %in% input$continent1 & year>=input$years[1] & year<=input$years[2])
-      data2<-subset(element3, UN_region%in% input$continent2 & year>=input$years[1] & year<=input$years[2])
+      data1<-subset(element_unregion,UN_region %in% input$continent1 & year>=input$years[1] & year<=input$years[2])
+      data2<-subset(element_unregion, UN_region%in% input$continent2 & year>=input$years[1] & year<=input$years[2])
+      ggplot(data1,aes(x=year,y=carbon/1000000))+
+        geom_line(data=data1,aes(x=year,y=carbon/1000000),size = 1,col = input$colour1_1) +
+        geom_line(data=data2,aes(x=year,y=carbon/1000000),size = 1,col = input$colour1_2) +
+        ylab('Total Carbon Emission / M') +
+        ggtitle(input$title)
     }
-    # data=curData()
-    # plot_ly(curData(),x=~year,y=~carbon,name = 'nothing',type = 'box')
-    data1<-as.data.frame(data1)
-    data2<-as.data.frame(data2)
-    p<-ggplot(data1,aes(x=year,y=carbon/1000000))+
-      geom_line(data=data1,aes(x=year,y=carbon/1000000),size = 1,col = input$colour) +
-      geom_line(data=data2,aes(x=year,y=carbon/1000000),size = 1,col = input$colour1) +
-      ylab('Total Carbon Emission / M') +
-      ggtitle(input$title)
-    p
+
   })
   
   Data1<-reactive({
-    subset(element3,year>=input$years[1] & year<=input$years[2])
+    subset(element_unregion,year>=input$years[1] & year<=input$years[2])
   })
-  output$test<-renderPlotly({
+  
+  output$plot_box<-renderPlotly({
     
     box1<-Data1()
     p<-plot_ly(box1,x=~UN_region,y=~carbon,name = 'nothing',type = 'box')%>%
       layout(title=sprintf("From %g to %g",input$years[1],input$years[2]))
     p
-    # add_trace(data2x=~year,y=~carbon,mode='point')
-  })
-  output$plot2<-renderPlotly({
     
-    # box1<-subset(element3[element3$year>=input$years[1]|element3$year<=input$years[2],])
+  })
+  
+  output$plot_stream<-renderPlotly({
+    
     box1=Data1()
     
-    (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
+    (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) 
+      + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
       ggplotly()
   })
-  output$plot2<-renderPlotly({
+  
+  Data2<-reactive({
+    subset(element_country,year>=input$years[1] & year<=input$years[2])
     
-    # box1<-subset(element3[element3$year>=input$years[1]|element3$year<=input$years[2],])
-    box1=Data1()
-    
-    (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
-      ggplotly()
   })
+  
   output$map<-renderPlotly({
-    
+    data_map=Data2()
     # specify some map projection/options
     g <- list(
       scope = 'world',
@@ -149,7 +130,7 @@ server <- function(input, output, session) {
     )
     
     # create our plot
-    plot_geo(element2, locationmode = 'country names') %>%
+    plot_geo(head(data_map,2000), locationmode = 'country names') %>%
       add_trace(
         z = ~carbon, 
         locations = ~country,
@@ -157,7 +138,7 @@ server <- function(input, output, session) {
         colors = "Blues"   
       ) %>%
       layout(
-        title = 'Mean Carbon Emissions on the world',
+        title=sprintf("'Mean Carbon Emissions From %g to %g",input$years[1],input$years[2]) ,
         geo = g
       )
   }
