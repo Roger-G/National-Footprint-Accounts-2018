@@ -19,6 +19,7 @@ element_unregion <- aggregate(cbind(carbon) ~ UN_region+year, element_origin, FU
 
 
 ui <- fluidPage(
+  
   sidebarLayout(
     sidebarPanel(
       selectInput(
@@ -53,15 +54,15 @@ ui <- fluidPage(
       ),
       
       # numericInput("size", "Point size", 1, 1),
-      sliderInput("years","Years",min(elements$year),max(elements$year),value = c(1961,2007))
+      sliderInput("years","Years",min(elements$year),max(elements$year),value = c(1961,2007),step=1,sep = "")
     ),
     mainPanel(
       tabsetPanel(
         type = "tabs",
-        tabPanel("Comparision",plotlyOutput("plot_comparision")),
-        tabPanel("Distribution",plotlyOutput("plot_box")),
-        tabPanel('Revolution',plotlyOutput("plot_stream")),
-        tabPanel('World CO2 commsion map',plotlyOutput("map"))
+        tabPanel("Comparision",h3("How changes of total CO2 emission in selected countries?"),plotlyOutput("plot_comparision")),
+        tabPanel("Distribution",h3("What the distribution of CO2 emission in different continents?"),plotlyOutput("plot_box")),
+        tabPanel('Revolution',h3("What is the revolution of CO2 emission ?"),plotlyOutput("plot_stream")),
+        tabPanel('World CO2 emission map',h3(""),plotlyOutput("map"))
                  )
       )
     )
@@ -85,7 +86,7 @@ server <- function(input, output, session) {
         geom_line(data=data1,aes(x=year,y=carbon/1000000),size = 1,col = input$colour) +
         geom_line(data=data2,aes(x=year,y=carbon/1000000),size = 1,col = input$colour1) +
         ylab('Total Carbon Emission / M') +
-        ggtitle(sprintf("Total CO2 commision in %s and %s",input$countries1,input$countries2))
+        ggtitle(sprintf("How changes of total CO2 commision between %s and %s ?",input$countries1,input$countries2))
     }
     else if (input$region=="Continent and CO2 commision"){
       data1<-subset(element_unregion,UN_region %in% input$continent1 & year>=input$years[1] & year<=input$years[2])
