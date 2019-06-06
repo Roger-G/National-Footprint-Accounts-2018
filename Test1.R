@@ -61,8 +61,8 @@ ui <- fluidPage(
         type = "tabs",
         tabPanel("Comparision",h3("How changes of total CO2 emission in selected countries?"),plotlyOutput("plot_comparision")),
         tabPanel("Distribution",h3("What the distribution of CO2 emission in different continents?"),plotlyOutput("plot_box")),
-        tabPanel('Revolution',h3("What is the revolution of CO2 emission ?"),plotlyOutput("plot_stream")),
-        tabPanel('World CO2 emission map',h3(""),plotlyOutput("map"))
+        tabPanel('Evolution',h3("What is the revolution of CO2 emission ?"),plotlyOutput("plot_stream")),
+        tabPanel('World CO2 emission map',h3("How does changes of CO2 all the world over years ?"),plotlyOutput("map"))
                  )
       )
     )
@@ -118,7 +118,7 @@ server <- function(input, output, session) {
     box1=Data1()
     
     (ggplot(box1 %>% filter(UN_region != 'World'), aes(year, carbon)) 
-      + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emissions') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
+      + geom_area(aes(fill=UN_region), alpha=0.5) + ylab('Total Carbon Emission') + ggtitle(sprintf("From %g to %g",input$years[1],input$years[2]))) %>%
       ggplotly()
   })
   
